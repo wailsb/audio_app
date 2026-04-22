@@ -81,7 +81,7 @@ class _BiometricScreenState extends State<BiometricScreen>
       });
     }
   }
-  
+
   Future<void> _playSuccessSound() async {
     try {
       // Utilise un asset local
