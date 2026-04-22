@@ -43,71 +43,28 @@ class _BiometricScreenState extends State<BiometricScreen>
     setState(() {
       _isAuthenticating = true;
       _isError = false;
-      _statusMessage = 'Vérification de l\'empreinte digitale...';
+      _statusMessage = 'Vérification en cours...';
     });
 
-    // Vérifier si des empreintes sont enregistrées
-    final hasEnrolled = await _biometricService.hasEnrolledBiometrics();
-    if (!hasEnrolled) {
-      setState(() {
-        _statusMessage =
-            'Aucune empreinte enregistrée.\nRedirection vers les paramètres...';
-        _isError = true;
-        _isAuthenticating = false;
-      });
-      await Future.delayed(const Duration(seconds: 2));
-      // Ouvrir les paramètres système (Android)
-      // AppSettings.openBiometricSettings() nécessite le package app_settings
-      // Pour l'instant, afficher un dialog
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('Empreinte requise'),
-            content: const Text(
-                'Veuillez aller dans Paramètres > Sécurité > Empreinte digitale pour enregistrer une empreinte.'),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _startAuth();
-                },
-                child: const Text('Réessayer'),
-              ),
-            ],
-          ),
-        );
-      }
-      return;
-    }
-
-    // Authentifier
     final success = await _biometricService.authenticate(
       reason: 'Placez votre doigt pour accéder à AudioSecure',
     );
 
     if (success) {
-      // Émettre son de succès
       await _playSuccessSound();
-
       setState(() {
         _statusMessage = 'Authentification réussie ✓';
         _isError = false;
         _isAuthenticating = false;
       });
-
       await Future.delayed(const Duration(milliseconds: 800));
-
-      // Vérifier si déjà connecté sur Firebase
       if (mounted) {
         final currentUser = _authService.currentUser;
         if (currentUser != null) {
           final userData = await _authService.getUserData(currentUser.uid);
           if (userData != null && mounted) {
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => HomeScreen(user: userData),
-              ),
+              MaterialPageRoute(builder: (_) => HomeScreen(user: userData)),
             );
             return;
           }
@@ -118,13 +75,13 @@ class _BiometricScreenState extends State<BiometricScreen>
       }
     } else {
       setState(() {
-        _statusMessage = 'Échec de l\'authentification.\nRéessayez.';
+        _statusMessage = 'Échec. Réessayez.';
         _isError = true;
         _isAuthenticating = false;
       });
     }
   }
-
+  
   Future<void> _playSuccessSound() async {
     try {
       // Utilise un asset local
