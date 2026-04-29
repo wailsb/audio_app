@@ -1,5 +1,3 @@
 package com.example.audio_app
 
-import io.flutter.embedding.android.FlutterActivity
-
-class MainActivity : FlutterActivity()
+// Obsolete placeholder. The real MainActivity lives in com.audioapp.audio_app.

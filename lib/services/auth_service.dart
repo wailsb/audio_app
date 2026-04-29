@@ -35,7 +35,12 @@ class AuthService {
     );
 
     // Sauvegarder dans Firestore
-    await _db.collection('users').doc(user.uid).set(user.toMap());
+    try {
+      await _db.collection('users').doc(user.uid).set(user.toMap());
+    } catch (_) {
+      // Firestore peut être désactivé ou les règles peuvent bloquer l'écriture.
+      // On continue quand même pour permettre la connexion.
+    }
 
     return user;
   }
@@ -49,8 +54,32 @@ class AuthService {
       email: email,
       password: password,
     );
+    final uid = credential.user?.uid;
+    if (uid == null) return null;
 
-    return getUserData(credential.user!.uid);
+    try {
+      final userData = await getUserData(uid);
+      if (userData != null) return userData;
+    } catch (_) {
+      // Firestore indisponible ou document manquant.
+    }
+
+    final fallbackUser = UserModel(
+      uid: uid,
+      email: credential.user?.email ?? email,
+      firstName: '',
+      lastName: '',
+      birthDate: DateTime(1970, 1, 1),
+    );
+
+    // Essayer de créer le profil si Firestore est disponible.
+    try {
+      await _db.collection('users').doc(uid).set(fallbackUser.toMap(), SetOptions(merge: true));
+    } catch (_) {
+      // Ignorer si Firestore est désactivé.
+    }
+
+    return fallbackUser;
   }
 
   // Récupérer les données utilisateur
