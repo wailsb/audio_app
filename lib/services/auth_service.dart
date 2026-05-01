@@ -89,6 +89,36 @@ class AuthService {
     return UserModel.fromMap(doc.data()!);
   }
 
+  // Récupérer ou créer un profil local (fallback si Firestore indisponible)
+  Future<UserModel> getUserDataOrFallback(User user) async {
+    final uid = user.uid;
+    try {
+      final userData = await getUserData(uid);
+      if (userData != null) return userData;
+    } catch (_) {
+      // Ignorer les erreurs Firestore
+    }
+
+    final fallbackUser = UserModel(
+      uid: uid,
+      email: user.email ?? '',
+      firstName: '',
+      lastName: '',
+      birthDate: DateTime(1970, 1, 1),
+    );
+
+    try {
+      await _db
+          .collection('users')
+          .doc(uid)
+          .set(fallbackUser.toMap(), SetOptions(merge: true));
+    } catch (_) {
+      // Ignorer si Firestore est désactivé
+    }
+
+    return fallbackUser;
+  }
+
   // Réinitialisation du mot de passe
   Future<void> resetPassword(String email) async {
     await _auth.sendPasswordResetEmail(email: email);

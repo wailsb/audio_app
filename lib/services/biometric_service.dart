@@ -19,31 +19,38 @@ class BiometricService {
       final biometrics = await _auth.getAvailableBiometrics();
       return biometrics.isNotEmpty;
     } on PlatformException {
-      // Sur émulateur → retourner true pour ne pas bloquer
-      return true;
+      return false;
     }
   }
 
-  Future<bool> authenticate({String reason = 'Vérifiez votre identité'}) async {
+  Future<BiometricAuthResult> authenticate({
+    String reason = 'Vérifiez votre identité',
+  }) async {
     try {
-      final available = await _auth.canCheckBiometrics;
-      final supported = await _auth.isDeviceSupported();
-
-      // Si biométrie non disponible (émulateur) → passer directement
-      if (!available || !supported) {
-        return true;
-      }
-
-      return await _auth.authenticate(
+      final success = await _auth.authenticate(
         localizedReason: reason,
         options: const AuthenticationOptions(
-          biometricOnly: false, // false = accepte aussi PIN/pattern
+          biometricOnly: false,
           stickyAuth: true,
+          useErrorDialogs: true,
         ),
       );
-    } on PlatformException {
-      // Sur émulateur en cas d'erreur → laisser passer
-      return true;
+      return BiometricAuthResult(success: success);
+    } on PlatformException catch (e) {
+      return BiometricAuthResult(
+        success: false,
+        errorMessage: e.message ?? 'Erreur biométrique.',
+      );
     }
   }
+}
+
+class BiometricAuthResult {
+  final bool success;
+  final String? errorMessage;
+
+  const BiometricAuthResult({
+    required this.success,
+    this.errorMessage,
+  });
 }

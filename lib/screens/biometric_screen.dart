@@ -46,11 +46,11 @@ class _BiometricScreenState extends State<BiometricScreen>
       _statusMessage = 'Vérification en cours...';
     });
 
-    final success = await _biometricService.authenticate(
+    final result = await _biometricService.authenticate(
       reason: 'Placez votre doigt pour accéder à AudioSecure',
     );
 
-    if (success) {
+    if (result.success) {
       await _playSuccessSound();
       setState(() {
         _statusMessage = 'Authentification réussie ✓';
@@ -61,12 +61,18 @@ class _BiometricScreenState extends State<BiometricScreen>
       if (mounted) {
         final currentUser = _authService.currentUser;
         if (currentUser != null) {
-          final userData = await _authService.getUserData(currentUser.uid);
-          if (userData != null && mounted) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => HomeScreen(user: userData)),
-            );
-            return;
+          try {
+            final userData = await _authService
+                .getUserDataOrFallback(currentUser)
+                .timeout(const Duration(seconds: 5));
+            if (mounted) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => HomeScreen(user: userData)),
+              );
+              return;
+            }
+          } catch (_) {
+            // Fallback vers login si blocage
           }
         }
         Navigator.of(context).pushReplacement(
@@ -75,7 +81,7 @@ class _BiometricScreenState extends State<BiometricScreen>
       }
     } else {
       setState(() {
-        _statusMessage = 'Échec. Réessayez.';
+        _statusMessage = result.errorMessage ?? 'Échec. Réessayez.';
         _isError = true;
         _isAuthenticating = false;
       });

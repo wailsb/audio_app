@@ -35,18 +35,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadStats() async {
     setState(() => _loading = true);
-    final uid = widget.user.uid;
-    final daily = await _statsService.getMonthlyDailyMinutes(uid);
-    final total = await _statsService.getMonthlyTotal(uid);
-    final top = await _statsService.getTopTracks(uid);
-    final goal = await _statsService.getMonthlyGoalHours();
-    setState(() {
-      _dailyMinutes = daily;
-      _monthlyTotal = total;
-      _topTracks = top;
-      _goalHours = goal;
-      _loading = false;
-    });
+    try {
+      final uid = widget.user.uid;
+      final daily = await _statsService.getMonthlyDailyMinutes(uid);
+      final total = await _statsService.getMonthlyTotal(uid);
+      final top = await _statsService.getTopTracks(uid);
+      final goal = await _statsService.getMonthlyGoalHours();
+      if (!mounted) return;
+      setState(() {
+        _dailyMinutes = daily;
+        _monthlyTotal = total;
+        _topTracks = top;
+        _goalHours = goal;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+    }
   }
 
   Future<void> _logout() async {

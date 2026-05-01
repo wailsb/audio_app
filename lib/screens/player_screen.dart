@@ -120,7 +120,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       final auth = await _bioService.authenticate(
         reason: 'Confirmez la suppression du favori',
       );
-      if (!auth) {
+      if (!auth.success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Authentification biométrique requise')),
@@ -176,6 +176,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final cat = _categories[i];
     final isExpanded = _expandedIndex == i;
     final tracks = _tracksByCategory[i.toString()] ?? [];
+    final dynamicCount = tracks.isNotEmpty
+        ? tracks.length
+        : (cat['verses_count'] ?? cat['versesCount'] ?? cat['verses']?.length);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -196,7 +199,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   color: Colors.white, fontWeight: FontWeight.w600),
             ),
             subtitle: Text(
-              '${cat['verses_count'] ?? '?'} morceaux',
+              '${dynamicCount ?? '?'} morceaux',
               style: const TextStyle(color: Colors.white38, fontSize: 12),
             ),
             trailing: Icon(

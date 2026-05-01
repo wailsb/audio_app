@@ -44,7 +44,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final auth = await _bioService.authenticate(
       reason: 'Confirmez la suppression de "${track.title}" des favoris',
     );
-    if (!auth) {
+    if (!auth.success) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
