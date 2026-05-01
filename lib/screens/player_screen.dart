@@ -25,6 +25,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   List<Map<String, dynamic>> _categories = [];
   Map<String, List<AudioTrack>> _tracksByCategory = {};
+  final Map<String, int> _categoryCounts = {};
   AudioTrack? _currentTrack;
   bool _loadingCategories = true;
   bool _loadingTracks = false;
@@ -53,6 +54,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _categories = cats;
       _loadingCategories = false;
     });
+    _prefetchCategoryCounts();
+  }
+
+  Future<void> _prefetchCategoryCounts() async {
+    for (int i = 0; i < _categories.length; i++) {
+      final cat = _categories[i];
+      final key = i.toString();
+      if (_tracksByCategory.containsKey(key) || _categoryCounts.containsKey(key)) {
+        continue;
+      }
+      final tracks = await _apiService.fetchTracksForCategory(cat);
+      if (!mounted) return;
+      setState(() {
+        _tracksByCategory[key] = tracks;
+        _categoryCounts[key] = tracks.length;
+      });
+    }
   }
 
   Future<void> _loadCategoryTracks(Map<String, dynamic> category, int index) async {
@@ -64,6 +82,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final tracks = await _apiService.fetchTracksForCategory(category);
     setState(() {
       _tracksByCategory[index.toString()] = tracks;
+      _categoryCounts[index.toString()] = tracks.length;
       _loadingTracks = false;
     });
   }
@@ -176,9 +195,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final cat = _categories[i];
     final isExpanded = _expandedIndex == i;
     final tracks = _tracksByCategory[i.toString()] ?? [];
-    final dynamicCount = tracks.isNotEmpty
+    final cachedCount = _categoryCounts[i.toString()];
+    final dynamicCount = cachedCount ??
+      (tracks.isNotEmpty
         ? tracks.length
-        : (cat['verses_count'] ?? cat['versesCount'] ?? cat['verses']?.length);
+        : (cat['verses_count'] ?? cat['versesCount'] ?? cat['verses']?.length));
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),

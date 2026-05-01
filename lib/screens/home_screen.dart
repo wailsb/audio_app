@@ -31,16 +31,29 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _loadStats();
+    Future.delayed(const Duration(seconds: 6), () {
+      if (mounted && _loading) {
+        setState(() => _loading = false);
+      }
+    });
   }
 
   Future<void> _loadStats() async {
     setState(() => _loading = true);
     try {
       final uid = widget.user.uid;
-      final daily = await _statsService.getMonthlyDailyMinutes(uid);
-      final total = await _statsService.getMonthlyTotal(uid);
-      final top = await _statsService.getTopTracks(uid);
-      final goal = await _statsService.getMonthlyGoalHours();
+      final daily = await _statsService
+          .getMonthlyDailyMinutes(uid)
+          .timeout(const Duration(seconds: 5), onTimeout: () => {});
+      final top = await _statsService
+          .getTopTracks(uid)
+          .timeout(const Duration(seconds: 5), onTimeout: () => []);
+      final goal = await _statsService
+          .getMonthlyGoalHours()
+          .timeout(const Duration(seconds: 2), onTimeout: () => 20);
+
+      final totalMinutes = daily.values.fold(0.0, (a, b) => a + b);
+      final total = Duration(minutes: totalMinutes.round());
       if (!mounted) return;
       setState(() {
         _dailyMinutes = daily;
